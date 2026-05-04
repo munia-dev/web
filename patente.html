@@ -1,0 +1,154 @@
+<!-- 04052026_0834 -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lector de Patentes</title>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+<style>
+  body{
+    margin:0;
+    font-family: Arial, sans-serif;
+    background:#0f172a;
+    color:white;
+    text-align:center;
+  }
+
+  h1{
+    margin:20px 0;
+    font-size:28px;
+  }
+
+  video, canvas{
+    width:90%;
+    max-width:500px;
+    border-radius:12px;
+    margin-top:10px;
+  }
+
+  .botones{
+    margin-top:15px;
+    display:flex;
+    gap:10px;
+    justify-content:center;
+    flex-wrap:wrap;
+  }
+
+  button{
+    padding:12px 18px;
+    border:none;
+    border-radius:10px;
+    font-size:16px;
+    cursor:pointer;
+    background:#2563eb;
+    color:white;
+  }
+
+  button:active{
+    transform:scale(0.95);
+  }
+
+  .resultado{
+    margin-top:25px;
+  }
+
+  .patente{
+    font-size:40px;
+    font-weight:bold;
+    letter-spacing:3px;
+    margin-top:10px;
+  }
+
+  .copiar{
+    margin-left:10px;
+    background:#16a34a;
+  }
+</style>
+</head>
+
+<body>
+
+<h1>📸 Lector de Patentes</h1>
+
+<video id="video" autoplay playsinline></video>
+<canvas id="canvas" style="display:none;"></canvas>
+
+<div class="botones">
+  <button onclick="capturar()">📷 Capturar foto</button>
+  <button onclick="toggleScan()">🔍 Escanear en vivo</button>
+</div>
+
+<div class="resultado">
+  <div>PATENTE DETECTADA</div>
+  <div>
+    <span id="texto" class="patente">---</span>
+    <button class="copiar" onclick="copiar()">Copiar</button>
+  </div>
+</div>
+
+<script>
+let video = document.getElementById('video');
+let canvas = document.getElementById('canvas');
+let ctx = canvas.getContext('2d');
+let escaneando = false;
+let intervalo;
+
+// iniciar cámara
+navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+.then(stream => {
+  video.srcObject = stream;
+});
+
+// limpiar texto OCR
+function limpiarTexto(texto){
+  return texto
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+    .trim();
+}
+
+// OCR
+async function leerImagen(){
+  const { data: { text } } = await Tesseract.recognize(canvas, 'eng');
+  let limpio = limpiarTexto(text);
+  if(limpio.length >= 5){
+    document.getElementById("texto").innerText = limpio;
+  }
+}
+
+// capturar foto
+function capturar(){
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  ctx.drawImage(video, 0, 0);
+  leerImagen();
+}
+
+// escaneo en vivo
+function toggleScan(){
+  escaneando = !escaneando;
+
+  if(escaneando){
+    intervalo = setInterval(()=>{
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+      leerImagen();
+    }, 1500);
+  }else{
+    clearInterval(intervalo);
+  }
+}
+
+// copiar texto
+function copiar(){
+  let texto = document.getElementById("texto").innerText;
+  navigator.clipboard.writeText(texto);
+}
+</script>
+
+</body>
+</html>
